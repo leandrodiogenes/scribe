@@ -46,7 +46,7 @@ class PostmanCollectionWriter
     public function makePostmanCollection()
     {
         $collection = [
-            'variables' => [],
+            'variables' => config('scribe.postman.variables'),
             'info' => [
                 'name' => config('scribe.title') ?: config('app.name') . ' API',
                 '_postman_id' => Uuid::uuid4()->toString(),
@@ -74,7 +74,8 @@ class PostmanCollectionWriter
         $method = $route['methods'][0];
 
         return [
-            'name' => $route['metadata']['title'] !== '' ? $route['metadata']['title'] : $route['uri'],
+            'name'  => $route['metadata']['title'] !== '' ? $route['metadata']['title'] : $route['uri'],
+            'event' => $this->resolvePostmanEvents($route),
             'request' => [
                 'url' => $this->makeUrlData($route),
                 'method' => $method,
@@ -86,6 +87,24 @@ class PostmanCollectionWriter
         ];
     }
 
+    protected function resolvePostmanEvents($route)
+    {
+        $headers = collect($route['postmanEvents']);
+
+        return $headers
+            ->map(function ($value, $header) {
+                $value = str_replace('@{{', '{{', $value);
+                return [
+                    'listen' => 'test',
+                    'script'=>[
+                        "exec" => [$value],
+                        "type" => "text/javascript"
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+    }
     protected function getBodyData(array $route): array
     {
 

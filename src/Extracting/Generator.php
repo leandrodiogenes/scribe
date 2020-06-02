@@ -79,6 +79,10 @@ class Generator
         $parsedRoute['queryParameters'] = $queryParameters;
         $parsedRoute['cleanQueryParameters'] = self::cleanParams($queryParameters);
 
+
+        $postmanEvents = $this->fetchPostmanEvents($controller, $method, $route, $routeRules, $parsedRoute);
+        $parsedRoute['postmanEvents'] = $postmanEvents;
+
         $headers = $this->fetchRequestHeaders($controller, $method, $route, $routeRules, $parsedRoute);
         $parsedRoute['headers'] = $headers;
 
@@ -131,6 +135,11 @@ class Generator
         return $this->iterateThroughStrategies('queryParameters', $context, [$route, $controller, $method, $rulesToApply]);
     }
 
+    protected function fetchPostmanEvents(ReflectionClass $controller, ReflectionFunctionAbstract $method, Route $route, array $rulesToApply, array $context = [])
+    {
+        return $this->iterateThroughStrategies('postmanEvents', $context, [$route, $controller, $method, $rulesToApply]);
+    }
+
     protected function fetchBodyParameters(ReflectionClass $controller, ReflectionFunctionAbstract $method, Route $route, array $rulesToApply, array $context = [])
     {
         return $this->iterateThroughStrategies('bodyParameters', $context, [$route, $controller, $method, $rulesToApply]);
@@ -165,6 +174,9 @@ class Generator
         $defaultStrategies = [
             'metadata' => [
                 \Knuckles\Scribe\Extracting\Strategies\Metadata\GetFromDocBlocks::class,
+            ],
+            'postmanEvents' => [
+
             ],
             'urlParameters' => [
                 \Knuckles\Scribe\Extracting\Strategies\UrlParameters\GetFromUrlParamTag::class,

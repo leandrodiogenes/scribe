@@ -94,7 +94,7 @@ INTRO
      *
      */
     'example_languages' => [
-        'bash',
+//        'bash',
         'javascript',
     ],
 
@@ -102,7 +102,7 @@ INTRO
      * The base URL to be used in examples.
      * If this is null, Scribe will use the value of config('app.url').
      */
-    'base_url' => null,
+    'base_url' => config('app.url'),
 
     /*
      * The HTML <title> for the generated documentation, and the name of the generated Postman collection.
@@ -122,11 +122,21 @@ INTRO
          */
         'enabled' => true,
 
+
+        'variables' => [
+            [
+                "key"=> "url_base",
+                "value"=> str_replace(['http://','https://'],'',config('scribe.base_url')),
+                "type"=> "string"
+            ],
+        ],
+
+
         /*
          * The base URL to be used in the Postman collection.
          * If this is null, Scribe will use the value of base_url set above.
          */
-        'base_url' => null,
+        'base_url' => '{{url_base}}',
 
         /*
          * The description for the exported Postman collection.
@@ -322,6 +332,9 @@ INTRO
         ],
         'responseFields' => [
             \Knuckles\Scribe\Extracting\Strategies\ResponseFields\GetFromResponseFieldTag::class,
+        ],
+        'postmanEvents' => [
+            \Knuckles\Scribe\Extracting\Strategies\Postman\GetPostmanEventsStrategy::class
         ],
     ],
 
