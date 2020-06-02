@@ -263,7 +263,7 @@ class GetFromFormRequest extends Strategy
                 break;
             case 'file':
                 $parameterData['type'] = 'file';
-                $parameterData['description'] .= 'The value must be a file.';
+                $parameterData['description'] .= 'O valor precisa ser um arquivo';
                 $parameterData['setter'] = function () {
                     return $this->generateDummyValue('file');
                 };
@@ -292,7 +292,7 @@ class GetFromFormRequest extends Strategy
                 };
                 $parameterData['type'] = 'string';
                 // Laravel's message is "The value format is invalid". Ugh.🤮
-                $parameterData['description'] .= "The value must be a valid URL. ";
+                $parameterData['description'] .= "O valor precisa ser uma URL válida";
                 break;
             case 'ip':
                 $parameterData['description'] .= d::getDescription($rule) . ' ';
@@ -318,7 +318,7 @@ class GetFromFormRequest extends Strategy
             case 'date_format':
                 $parameterData['type'] = 'string';
                 // Laravel description here is "The value must match the format Y-m-d". Not descriptive enough.
-                $parameterData['description'] .= "The value must be a valid date in the format {$arguments[0]} ";
+                $parameterData['description'] .= "O valor precisa ser uma data válida no formato {$arguments[0]} ";
                 $parameterData['setter'] = function () use ($arguments) {
                     return date($arguments[0], time());
                 };
@@ -362,7 +362,7 @@ class GetFromFormRequest extends Strategy
              */
             case 'in':
                 // Not using the rule description here because it only says "The attribute is invalid"
-                $description = 'The value must be one of ' . w::getListOfValuesAsFriendlyHtmlString($arguments);
+                $description = 'O valor precisa ser um dos seguintes:' . w::getListOfValuesAsFriendlyHtmlString($arguments);
                 $parameterData['description'] .= $description . ' ';
                 $parameterData['setter'] = function () use ($arguments) {
                     return Arr::random($arguments);

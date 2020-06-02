@@ -149,12 +149,12 @@ class WritingUtils
                 return "<code>{$list[0]}</code>";
 
             case 2:
-                return "<code>{$list[0]}</code> or <code>{$list[1]}</code>";
+                return "<code>{$list[0]}</code> ou <code>{$list[1]}</code>";
 
             default:
                 return "<code>"
                     . implode('</code>, <code>', array_slice($list, 0, -1))
-                    . "</code>, or <code>" . end($list) . "</code>";
+                    . "</code>, ou <code>" . end($list) . "</code>";
         }
     }
 }
