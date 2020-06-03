@@ -57,6 +57,13 @@ class ResponseCalls extends Strategy
 
         // Mix in parsed parameters with manually specified parameters.
         $context = $this->setAuthFieldProperly($context, $context['auth'] ?? null);
+
+
+        if(!empty($context['metadata']['guard'])){
+            $context['headers']['Authorization'] = "Bearer ".config("scribe.auth.use_value.{$context['metadata']['guard']}");
+        }
+
+
         $bodyParameters = array_merge($context['cleanBodyParameters'] ?? [], $rulesToApply['bodyParams'] ?? []);
         $queryParameters = array_merge($context['cleanQueryParameters'] ?? [], $rulesToApply['queryParams'] ?? []);
         $urlParameters = $context['cleanUrlParameters'] ?? [];
@@ -316,6 +323,7 @@ class ResponseCalls extends Strategy
      */
     protected function callLaravelOrLumenRoute(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        ini_set('xdebug.max_nesting_level', 1200);
         // Confirm we're running in Laravel, not Lumen
         if (app()->bound(Kernel::class)) {
             $kernel = app(Kernel::class);

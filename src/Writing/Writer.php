@@ -278,9 +278,8 @@ class Writer
             $strategy = $this->config->get('auth.in');
             $parameterName = $this->config->get('auth.name');
             $text = Arr::random([
-                "This API is authenticated by sending ",
-                "To authenticate requests, include ",
-                "Authenticate requests to this API's endpoints by sending ",
+                "Essa API é autenticada. ",
+                "Autentique as requests para os endpoints da API",
             ]);
             switch ($strategy) {
                 case 'query':
@@ -293,7 +292,7 @@ class Writer
                     $text .= "a parameter **`$parameterName`** either in the query string or in the request body.";
                     break;
                 case 'bearer':
-                    $text .= "an **`Authorization`** header with the value **`\"Bearer {your-token}\"`**.";
+                    $text .= " enviando o atributo **`Authorization`** no header com o valor **`\"Bearer {token}\"`**.";
                     break;
                 case 'basic':
                     $text .= "an **`Authorization`** header in the form **`\"Basic {credentials}\"`**. The value of `{credentials}` should be your username/id and your password, joined with a colon (:), and then base64-encoded.";

@@ -15,11 +15,11 @@ use ReflectionFunctionAbstract;
 
 class Utils
 {
-    public static function getFullUrl(Route $route, array $urlParameters = []): string
+    public static function getFullUrl(Route $route, array $urlParameters = [], array $replaceParameters = []): string
     {
         $uri = $route->uri();
 
-        return self::replaceUrlParameterPlaceholdersWithValues($uri, $urlParameters);
+        return self::replaceUrlParameterPlaceholdersWithValues($uri, $urlParameters, $replaceParameters);
     }
 
     public static function getRouteClassAndMethodNames(Route $route): array
@@ -54,9 +54,10 @@ class Utils
      * @param string $uri
      * @param array $urlParameters Dictionary of url params and example values
      *
+     * @param array $replaceParameters
      * @return mixed
      */
-    public static function replaceUrlParameterPlaceholdersWithValues(string $uri, array $urlParameters)
+    public static function replaceUrlParameterPlaceholdersWithValues(string $uri, array $urlParameters, array $replaceParameters = [])
     {
         $matches = preg_match_all('/{.+?}/i', $uri, $parameterPaths);
         if (!$matches) {
@@ -67,6 +68,13 @@ class Utils
             $key = trim($parameterPath, '{?}');
             if (isset($urlParameters[$key])) {
                 $example = $urlParameters[$key];
+                $uri = str_replace($parameterPath, $example, $uri);
+            }
+        }
+        foreach ($parameterPaths[0] as $parameterPath) {
+            $key = trim($parameterPath, '{?}');
+            if (isset($replaceParameters[$key])) {
+                $example = $replaceParameters[$key];
                 $uri = str_replace($parameterPath, $example, $uri);
             }
         }

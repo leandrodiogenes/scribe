@@ -152,6 +152,7 @@ class PostmanCollectionWriter
     {
         $headers = collect($route['headers']);
 
+        $guard = $route['metadata']['guard'];
         // Exclude authentication headers if they're handled by Postman auth
         $authHeader = $this->getAuthHeader();
         if (! empty($authHeader)) {
@@ -162,10 +163,13 @@ class PostmanCollectionWriter
             ->union([
                 'Accept' => 'application/json',
             ])
-            ->map(function ($value, $header) {
+            ->map(function ($value, $header) use ($guard) {
                 // Allow users to write ['header' => '@{{value}}'] in config
                 // and have it rendered properly as {{value}} in the Postman collection.
                 $value = str_replace('@{{', '{{', $value);
+                if(!empty($guard) and $header === "Authorization"){
+                    $value = "{{token_$guard}}";
+                }
                 return [
                     'key' => $header,
                     'value' => $value,

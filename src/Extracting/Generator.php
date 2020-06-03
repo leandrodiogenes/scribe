@@ -12,6 +12,7 @@ use Knuckles\Scribe\Tools\DocumentationConfig;
 use Knuckles\Scribe\Tools\Utils as u;
 use ReflectionClass;
 use ReflectionFunctionAbstract;
+use ReflectionParameter;
 
 class Generator
 {
@@ -71,8 +72,26 @@ class Generator
         $urlParameters = $this->fetchUrlParameters($controller, $method, $route, $routeRules, $parsedRoute);
         $parsedRoute['urlParameters'] = $urlParameters;
         $parsedRoute['cleanUrlParameters'] = self::cleanParams($urlParameters);
-        $parsedRoute['boundUri'] = u::getFullUrl($route, $parsedRoute['cleanUrlParameters']);
 
+        $parameters = $method->getParameters();
+
+        $replaceParameters = [];
+        foreach($parameters as $key=> $parameter){
+            /**@var ReflectionParameter $parameter * */
+            $class = $parameter->getClass();
+            if(!empty($class) and $class->isSubclassOf(\Illuminate\Database\Eloquent\Model::class)){
+                $className = $class->getName();
+                if(class_exists($className)) {
+                    $class_instance = app($className);
+                    if( $class_instance and !empty($model = $class_instance->first())){
+                        $replaceParameters[$parameter->getName()] = $model->id;
+                    }
+                }
+            }
+        }
+
+
+        $parsedRoute['boundUri'] = u::getFullUrl($route, $parsedRoute['cleanUrlParameters'],$replaceParameters);
         $parsedRoute = $this->addAuthField($parsedRoute);
 
         $queryParameters = $this->fetchQueryParameters($controller, $method, $route, $routeRules, $parsedRoute);
@@ -118,6 +137,7 @@ class Generator
             'groupName' => $this->config->get('default_group', ''),
             'groupDescription' => '',
             'title' => '',
+            'guard' => '',
             'description' => '',
             'authenticated' => false,
         ];
@@ -306,6 +326,8 @@ class Generator
     public function addAuthField(array $parsedRoute)
     {
         $parsedRoute['auth'] = null;
+
+        $guard = $parsedRoute['metadata']['guard'];
         $isApiAuthed = $this->config->get('auth.enabled', false);
         if (!$isApiAuthed || !$parsedRoute['metadata']['authenticated']) {
             return $parsedRoute;
@@ -318,8 +340,9 @@ class Generator
         if ($this->config->get('faker_seed')) {
             $faker->seed($this->config->get('faker_seed'));
         }
+
         $token = $faker->shuffle('abcdefghkvaZVDPE1864563');
-        $valueToUse = $this->config->get('auth.use_value');
+        $valueToUse = $this->config->get("auth.use_value.{$guard}",$this->config->get('auth.use_value.user'));
         switch ($strategy) {
             case 'query':
             case 'query_or_body':

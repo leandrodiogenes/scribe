@@ -175,4 +175,20 @@ trait ParamHelpers
 
         return [$description, $example];
     }
+
+    /**
+     * @param string $description
+     *
+     * @return array The description and included example.
+     */
+    protected function parseValuesFromParamDescription(string $description)
+    {
+        $values = null;
+        if (preg_match('/(.*)\bValues:\s*([\s\S]+)\s*/', $description, $content)) {
+            $values = explode(',',$content[2]);
+            $description = trim($content[1])." <br>Deve conter um dos seguintes valores: " . w::getListOfValuesAsFriendlyHtmlString($values);
+        }
+
+        return [$description, $values];
+    }
 }
