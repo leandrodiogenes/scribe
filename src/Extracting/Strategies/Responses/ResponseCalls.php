@@ -19,6 +19,8 @@ use Knuckles\Scribe\Tools\ErrorHandlingUtils as e;
 use Knuckles\Scribe\Tools\Utils;
 use ReflectionClass;
 use ReflectionFunctionAbstract;
+use Knuckles\Scribe\Tools\Utils as u;
+use ReflectionParameter;
 
 /**
  * Make a call to the route and retrieve its response.
@@ -121,10 +123,33 @@ class ResponseCalls extends Strategy
      * @param array $headers
      *
      * @return Request
+     * @throws \ReflectionException
      */
     protected function prepareRequest(Route $route, array $rulesToApply, array $urlParams, array $bodyParams, array $queryParams, array $fileParameters, array $headers)
     {
-        $uri = Utils::getFullUrl($route, $urlParams);
+
+        [$controllerName, $methodName] = u::getRouteClassAndMethodNames($route);
+        $controller = new ReflectionClass($controllerName);
+        $method = u::getReflectedRouteMethod([$controllerName, $methodName]);
+
+        $parameters = $method->getParameters();
+
+        $replaceParameters = [];
+        foreach($parameters as $key=> $parameter){
+            /**@var ReflectionParameter $parameter * */
+            $class = $parameter->getClass();
+            if(!empty($class) and $class->isSubclassOf(\Illuminate\Database\Eloquent\Model::class)){
+                $className = $class->getName();
+                if(class_exists($className)) {
+                    $class_instance = app($className);
+                    if( $class_instance and !empty($model = $class_instance->first())){
+                        $replaceParameters[$parameter->getName()] = $model->id;
+                    }
+                }
+            }
+        }
+
+        $uri = Utils::getFullUrl($route, $urlParams,$replaceParameters);
         $routeMethods = $this->getMethods($route);
         $method = array_shift($routeMethods);
         $cookies = isset($rulesToApply['cookies']) ? $rulesToApply['cookies'] : [];
@@ -323,7 +348,6 @@ class ResponseCalls extends Strategy
      */
     protected function callLaravelOrLumenRoute(Request $request): \Symfony\Component\HttpFoundation\Response
     {
-        ini_set('xdebug.max_nesting_level', 1200);
         // Confirm we're running in Laravel, not Lumen
         if (app()->bound(Kernel::class)) {
             $kernel = app(Kernel::class);

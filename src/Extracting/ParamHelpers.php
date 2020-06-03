@@ -3,7 +3,11 @@
 namespace Knuckles\Scribe\Extracting;
 
 use Faker\Factory;
+use Faker\Provider\pt_BR\Address;
+use Faker\Provider\pt_BR\Payment;
+use Faker\Provider\pt_BR\PhoneNumber;
 use Illuminate\Http\UploadedFile;
+use JansenFelipe\FakerBR\FakerBR;
 use stdClass;
 use Knuckles\Scribe\Tools\WritingUtils as w;
 
@@ -12,7 +16,11 @@ trait ParamHelpers
 
     protected function getFaker()
     {
-        $faker = Factory::create();
+        $faker = Factory::create('pt_BR');
+        $faker->addProvider(new FakerBR($faker));
+        $faker->addProvider(new PhoneNumber($faker));
+        $faker->addProvider(new Address($faker));
+        $faker->addProvider(new Payment($faker));
         if ($this->config->get('faker_seed')) {
             $faker->seed($this->config->get('faker_seed'));
         }

@@ -62,6 +62,7 @@ class UseApiResourceTags extends Strategy
      * @param Tag[] $tags
      *
      * @return array|null
+     * @throws Exception
      */
     public function getApiResourceResponse(array $tags)
     {
@@ -70,9 +71,10 @@ class UseApiResourceTags extends Strategy
         }
 
         [$statusCode, $apiResourceClass] = $this->getStatusCodeAndApiResourceClass($apiResourceTag);
-        [$model, $factoryStates, $relations, $pagination] = $this->getClassToBeTransformedAndAttributes($tags);
-        $modelInstance = $this->instantiateApiResourceModel($model, $factoryStates, $relations);
+        [$model, $factoryStates, $relations, $pagination, $useFactory] = $this->getClassToBeTransformedAndAttributes($tags);
 
+        $this->startDbTransaction();
+        $modelInstance = $this->instantiateApiResourceModel($model, $factoryStates, $relations,$useFactory);
         try {
             $resource = new $apiResourceClass($modelInstance);
         } catch (Exception $e) {
@@ -84,7 +86,7 @@ class UseApiResourceTags extends Strategy
             // Collections can either use the regular JsonResource class (via `::collection()`,
             // or a ResourceCollection (via `new`)
             // See https://laravel.com/docs/5.8/eloquent-resources
-            $models = [$modelInstance, $this->instantiateApiResourceModel($model, $factoryStates, $relations)];
+            $models = [$modelInstance, $this->instantiateApiResourceModel($model, $factoryStates, $relations,$useFactory)];
             // Pagination can be in two forms:
             // [15] : means ::paginate(15)
             // [15, 'simple'] : means ::simplePaginate(15)
@@ -113,6 +115,7 @@ class UseApiResourceTags extends Strategy
         /** @var Response $response */
         $response = $resource->toResponse(app(Request::class));
 
+        $this->endDbTransaction();
         return [
             [
                 'status' => $statusCode ?: 200,
@@ -143,13 +146,18 @@ class UseApiResourceTags extends Strategy
         }));
 
         $type = null;
+        $useFactory = false;
         $states = [];
         $relations = [];
         $pagination = [];
         if ($modelTag) {
-            ['content' => $type, 'attributes' => $attributes] = a::parseIntoContentAndAttributes($modelTag->getContent(), ['states', 'with', 'paginate']);
+            ['content' => $type, 'attributes' => $attributes] = a::parseIntoContentAndAttributes($modelTag->getContent(), ['states', 'with', 'paginate','relations','useFactory']);
             $states = $attributes['states'] ? explode(',', $attributes['states']) : [];
+            $useFactory = !!$attributes['useFactory'];
             $relations = $attributes['with'] ? explode(',', $attributes['with']) : [];
+            if(empty($relations)){
+                $relations = $attributes['relations'] ? explode(',', $attributes['relations']) : [];
+            }
             $pagination = $attributes['paginate'] ? explode(',', $attributes['paginate']) : [];
         }
 
@@ -157,23 +165,26 @@ class UseApiResourceTags extends Strategy
             throw new Exception("Couldn't detect an Eloquent API resource model from your docblock. Did you remember to specify a model using @apiResourceModel?");
         }
 
-        return [$type, $states, $relations, $pagination];
+        return [$type, $states, $relations, $pagination, $useFactory];
     }
 
     /**
      * @param string $type
      *
-     * @param array $relations
      * @param array $factoryStates
      *
+     * @param array $relations
+     * @param bool $useFactory
      * @return Model|object
      */
-    protected function instantiateApiResourceModel(string $type, array $factoryStates = [], array $relations = [])
+    protected function instantiateApiResourceModel(string $type, array $factoryStates = [], array $relations = [], $useFactory=false)
     {
-        $this->startDbTransaction();
+//        $this->startDbTransaction();
         try {
             // Try Eloquent model factory
-
+            if(!$useFactory){
+                throw new Exception('');
+            }
             // Factories are usually defined without the leading \ in the class name,
             // but the user might write it that way in a comment. Let's be safe.
             $type = ltrim($type, '\\');
@@ -183,22 +194,27 @@ class UseApiResourceTags extends Strategy
                 $factory->states($factoryStates);
             }
             try {
-                return $factory->create();
+                $result = $factory->create();
+                if(!empty($relations)){
+                    $result->load($relations);
+                }
+                return $result;
             } catch (Exception $e) {
                 // If there was no working database, it would fail.
                 return $factory->make();
             }
         } catch (Exception $e) {
-            c::debug("Eloquent model factory failed to instantiate {$type}; trying to fetch from database.");
-            e::dumpExceptionIfVerbose($e);
+//            c::debug("Eloquent model factory failed to instantiate {$type}; trying to fetch from database.");
+//            e::dumpExceptionIfVerbose($e);
 
             $instance = new $type();
             if ($instance instanceof \Illuminate\Database\Eloquent\Model) {
                 try {
                     // we can't use a factory but can try to get one from the database
-                    $firstInstance = $type::with($relations)->first();
-                    if ($firstInstance) {
-                        return $firstInstance;
+                    $lastInstance = $type::latest()->first();
+//                    $lastInstance = $type::with($relations)->latest()->first();
+                    if ($lastInstance) {
+                        return $lastInstance;
                     }
                 } catch (Exception $e) {
                     // okay, we'll stick with `new`
@@ -207,7 +223,7 @@ class UseApiResourceTags extends Strategy
                 }
             }
         } finally {
-            $this->endDbTransaction();
+//            $this->endDbTransaction();
         }
 
         return $instance;
