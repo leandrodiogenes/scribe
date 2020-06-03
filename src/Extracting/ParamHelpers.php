@@ -5,6 +5,7 @@ namespace Knuckles\Scribe\Extracting;
 use Faker\Factory;
 use Illuminate\Http\UploadedFile;
 use stdClass;
+use Knuckles\Scribe\Tools\WritingUtils as w;
 
 trait ParamHelpers
 {
@@ -27,16 +28,19 @@ trait ParamHelpers
                 return $faker->numberBetween(1, 20);
             },
             'number' => function () use ($faker) {
-                return $faker->randomFloat();
+                return $faker->randomFloat(2,20,100);
             },
             'float' => function () use ($faker) {
-                return $faker->randomFloat();
+                return $faker->randomFloat(2,20,100);
             },
             'boolean' => function () use ($faker) {
                 return $faker->boolean();
             },
             'string' => function () use ($faker) {
                 return $faker->word;
+            },
+            'uuid' => function () use ($faker) {
+                return $faker->uuid;
             },
             'array' => function () {
                 return [];
