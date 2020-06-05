@@ -105,6 +105,21 @@ class PostmanCollectionWriter
             ->values()
             ->all();
     }
+
+
+
+
+
+    protected function parseFormDataParameters(array &$route){
+        foreach ($route['cleanBodyParameters'] as $key => $value) {
+            if(is_array($value)){
+                foreach($value as $subkey => $subval){
+                    $route['cleanBodyParameters']["{$key}[$subkey]"] = $subval;
+                }
+                unset($route['cleanBodyParameters'][$key]);
+            }
+        }
+    }
     protected function getBodyData(array $route): array
     {
 
@@ -122,6 +137,7 @@ class PostmanCollectionWriter
 
         switch ($mode) {
             case 'formdata':
+                $this->parseFormDataParameters($route);
                 foreach ($route['cleanBodyParameters'] as $key => $value) {
                     $params = [
                         'key' => $key,

@@ -151,9 +151,9 @@ class UseApiResourceTags extends Strategy
         $relations = [];
         $pagination = [];
         if ($modelTag) {
-            ['content' => $type, 'attributes' => $attributes] = a::parseIntoContentAndAttributes($modelTag->getContent(), ['states', 'with', 'paginate','relations','useFactory']);
+            ['content' => $type, 'attributes' => $attributes] = a::parseIntoContentAndAttributes($modelTag->getContent(), ['states', 'with', 'paginate','relations','Use-Factory']);
             $states = $attributes['states'] ? explode(',', $attributes['states']) : [];
-            $useFactory = !!$attributes['useFactory'];
+            $useFactory = !!$attributes['Use-Factory'];
             $relations = $attributes['with'] ? explode(',', $attributes['with']) : [];
             if(empty($relations)){
                 $relations = $attributes['relations'] ? explode(',', $attributes['relations']) : [];

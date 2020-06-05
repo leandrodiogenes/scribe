@@ -136,7 +136,7 @@ class GetFromFormRequest extends Strategy
             // Make sure the user-specified description comes first.
             $userSpecifiedDescription = $userSpecifiedParameterInfo['description'] ?? '';
             $validationDescription = trim($parameterData['description'] ?: '');
-            $fullDescription = trim($userSpecifiedDescription . ' ' . trim($validationDescription));
+            $fullDescription = trim($userSpecifiedDescription . ($userSpecifiedDescription && $validationDescription?'<br>':' ') . trim($validationDescription));
             // Let's have our sentences end with full stops, like civilized people.🙂
             $parameterData['description'] = $fullDescription ? rtrim($fullDescription, '.') . '.' : $fullDescription;
 
@@ -368,7 +368,7 @@ class GetFromFormRequest extends Strategy
                 break;
             case 'min_words':
                 $parameterData['type'] = $parameterData['type'] ?: 'number';
-                $parameterData['description'] .= "*O campo precisa conter no minimo {$arguments[0]} ".plural('palavra.','palavras.',$arguments[0]).' ';
+                $this->changeDescription($parameterData,"*O campo precisa conter no minimo {$arguments[0]} ".plural('palavra.','palavras.',$arguments[0]).' ');
                 break;
             case 'digits':
                 $parameterData['type'] = $parameterData['type'] ?: 'number';
