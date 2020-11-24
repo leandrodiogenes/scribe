@@ -39,7 +39,6 @@ class RouteMatcher implements RouteMatcherInterface
                 }
             }
         }
-
         return $matchedRoutes;
     }
 
