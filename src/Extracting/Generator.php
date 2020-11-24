@@ -2,15 +2,32 @@
 
 namespace Knuckles\Scribe\Extracting;
 
+use Config;
 use Faker\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Knuckles\Scribe\Extracting\Strategies\BodyParameters\GetFromBodyParamTag;
+use Knuckles\Scribe\Extracting\Strategies\BodyParameters\GetFromFormRequest;
+use Knuckles\Scribe\Extracting\Strategies\Headers\GetFromHeaderTag;
+use Knuckles\Scribe\Extracting\Strategies\Headers\GetFromRouteRules;
+use Knuckles\Scribe\Extracting\Strategies\Metadata\GetFromDocBlocks;
+use Knuckles\Scribe\Extracting\Strategies\QueryParameters\GetFromQueryParamTag;
+use Knuckles\Scribe\Extracting\Strategies\ResponseFields\GetFromResponseFieldTag;
+use Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls;
+use Knuckles\Scribe\Extracting\Strategies\Responses\UseApiResourceTags;
+use Knuckles\Scribe\Extracting\Strategies\Responses\UseResponseFileTag;
+use Knuckles\Scribe\Extracting\Strategies\Responses\UseResponseTag;
+use Knuckles\Scribe\Extracting\Strategies\Responses\UseTransformerTags;
 use Knuckles\Scribe\Extracting\Strategies\Strategy;
+use Knuckles\Scribe\Extracting\Strategies\UrlParameters\GetFromUrlParamTag;
+use Knuckles\Scribe\Tools\AuthConfigHelper;
 use Knuckles\Scribe\Tools\DocumentationConfig;
 use Knuckles\Scribe\Tools\Utils as u;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionFunctionAbstract;
 use ReflectionParameter;
 
@@ -48,10 +65,10 @@ class Generator
     }
 
     /**
-     * @param \Illuminate\Routing\Route $route
+     * @param Route $route
      * @param array $routeRules Rules to apply when generating documentation for this route
      *
-     * @throws \ReflectionException
+     * @throws ReflectionException
      *
      * @return array
      */
@@ -79,7 +96,7 @@ class Generator
         foreach($parameters as $key=> $parameter){
             /**@var ReflectionParameter $parameter * */
             $class = $parameter->getClass();
-            if(!empty($class) and $class->isSubclassOf(\Illuminate\Database\Eloquent\Model::class)){
+            if(!empty($class) and $class->isSubclassOf(Model::class)){
                 $className = $class->getName();
                 if(class_exists($className)) {
                     $class_instance = app($className);
@@ -193,34 +210,34 @@ class Generator
     {
         $defaultStrategies = [
             'metadata' => [
-                \Knuckles\Scribe\Extracting\Strategies\Metadata\GetFromDocBlocks::class,
+                GetFromDocBlocks::class,
             ],
             'postmanEvents' => [
 
             ],
             'urlParameters' => [
-                \Knuckles\Scribe\Extracting\Strategies\UrlParameters\GetFromUrlParamTag::class,
+                GetFromUrlParamTag::class,
             ],
             'queryParameters' => [
-                \Knuckles\Scribe\Extracting\Strategies\QueryParameters\GetFromQueryParamTag::class,
+                GetFromQueryParamTag::class,
             ],
             'headers' => [
-                \Knuckles\Scribe\Extracting\Strategies\Headers\GetFromRouteRules::class,
-                \Knuckles\Scribe\Extracting\Strategies\Headers\GetFromHeaderTag::class,
+                GetFromRouteRules::class,
+                GetFromHeaderTag::class,
             ],
             'bodyParameters' => [
-                \Knuckles\Scribe\Extracting\Strategies\BodyParameters\GetFromFormRequest::class,
-                \Knuckles\Scribe\Extracting\Strategies\BodyParameters\GetFromBodyParamTag::class,
+                GetFromFormRequest::class,
+                GetFromBodyParamTag::class,
             ],
             'responses' => [
-                \Knuckles\Scribe\Extracting\Strategies\Responses\UseTransformerTags::class,
-                \Knuckles\Scribe\Extracting\Strategies\Responses\UseResponseTag::class,
-                \Knuckles\Scribe\Extracting\Strategies\Responses\UseResponseFileTag::class,
-                \Knuckles\Scribe\Extracting\Strategies\Responses\UseApiResourceTags::class,
-                \Knuckles\Scribe\Extracting\Strategies\Responses\ResponseCalls::class,
+                UseTransformerTags::class,
+                UseResponseTag::class,
+                UseResponseFileTag::class,
+                UseApiResourceTags::class,
+                ResponseCalls::class,
             ],
             'responseFields' => [
-                \Knuckles\Scribe\Extracting\Strategies\ResponseFields\GetFromResponseFieldTag::class,
+                GetFromResponseFieldTag::class,
             ],
         ];
 
@@ -341,8 +358,20 @@ class Generator
             $faker->seed($this->config->get('faker_seed'));
         }
 
+
+
+        $valueToUse = $this->config->get("auth.use_value.{$guard}",null);
+
+        if(!$valueToUse) {
+            $model = AuthConfigHelper::getProviderModel(config("auth.guards.{$guard}.provider"));
+            $user     = $model::first();
+            if($user) {
+                $valueToUse = $user->createToken('scribe')->accessToken;
+                Config::set('scribe.auth.use_value.'.$guard, $valueToUse);
+            }
+        }
+
         $token = $faker->shuffle('abcdefghkvaZVDPE1864563');
-        $valueToUse = $this->config->get("auth.use_value.{$guard}",$this->config->get('auth.use_value.user'));
         switch ($strategy) {
             case 'query':
             case 'query_or_body':

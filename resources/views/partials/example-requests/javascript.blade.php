@@ -5,27 +5,28 @@
 //------------------------------------
 
 @if(count($route['cleanQueryParameters']))
-    let params = {!! \Knuckles\Scribe\Tools\WritingUtils::printQueryParamsAsKeyValue($route['cleanQueryParameters'], "\"", ":", 4, "{}") !!};
+    let params = {!! \Knuckles\Scribe\Tools\WritingUtils::printQueryParamsAsKeyValue($route['cleanQueryParameters'], "\"", ":", 4, "{}")
+    !!};
 @endif
 @if(count($route['cleanBodyParameters']))
     let params = {!! json_encode($route['cleanBodyParameters'], JSON_PRETTY_PRINT) !!}
 @endif
 
 new ApiRequest({
-url: "{{ rtrim($baseUrl, '/') }}/{{ ltrim($route['boundUri'], '/') }}",
-method: "{{$route['methods'][0]}}",
+    url: "{{ rtrim($baseUrl, '/') }}/{{ ltrim($route['boundUri'], '/') }}",
+    method: "{{$route['methods'][0]}}",
 @if($route['methods'][0] == "PUT")
     raw: true,
 @endif
-success: function(response){ }
-})
+    success: function(response){ }
+    })
 @foreach($route['fileParameters'] as $parameter => $file)
     .addParameter('{!! $parameter !!}', document.querySelector('input[name="{!! $parameter !!}"]').files[0]);
 @endforeach
 @if(count($route['cleanQueryParameters']) or count($route['cleanBodyParameters']))
     .addParameters(params)
 @endif
-.execute();
+    .execute();
 
 
 
